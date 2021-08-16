@@ -1,5 +1,3 @@
-from pprint import pprint
-
 import numpy as np
 import xarray as xr
 import astropy.units as u
@@ -10,7 +8,7 @@ from hdf5reader import *
 # MAKE GET_ISWEEP_VSWEEP A NAMESPACE PACKAGE WITH GENERIC DATA TO ACCESS AND IMPORT HERE
 
 
-def get_isat(filename):
+def get_isat(filename, sample_sec):
 
     hdf5_file = open_hdf5(filename)
     x_round, y_round, shot_list = get_mach_xy(hdf5_file)
@@ -25,8 +23,11 @@ def get_isat(filename):
     # Store six separate 4D arrays: x, y, shot number at position, frame number in shot (5D overall)
     isat_xy_shots_array = np.array([isat_face[xy_shot_ref] for isat_face in isat_array])
 
+    isat_xarray = to_isat_xarray(isat_xy_shots_array, x, y, sample_sec)
+
     hdf5_file.close()
-    return isat_xy_shots_array, x, y
+    return isat_xarray
+    #  return isat_xy_shots_array, x, y
 
 
 def get_mach_xy(hdf5_file):
@@ -105,14 +106,14 @@ def read_mach_data_headers(hdf5_file):
     mach_headers_paths = [sis_data[12 + (2 * i + 1)] for i in range(6)]
 
     # Converting entire structured datasets into NumPy arrays is slow?
-    # print(" * Reading data...")
+    print(" * Reading data...")
     mach_data_raw = np.array([hdf5_file[path] for path in mach_data_paths])
-    # mach_headers_raw = np.array([hdf5_file[path] for path in mach_headers_paths])
-    # print(" * Reading scales...")
+    print(" * Reading scales...")
     mach_scales_raw = np.array([(hdf5_file[path])['Scale'] for path in mach_headers_paths])
-    # print(" * Reading offsets...")
+    print(" * Reading offsets...")
     mach_offsets_raw = np.array([(hdf5_file[path])['Offset'] for path in mach_headers_paths])
 
+    # mach_headers_raw = np.array([hdf5_file[path] for path in mach_headers_paths])
     # print(mach_headers_raw.dtype)
     # print(mach_headers_raw['Scale'])
 
@@ -150,7 +151,29 @@ def scale_offset_decompress(data, scales, offsets):  # change INPUT PARAMETERS a
     return data * scales + offsets
 
 
-# def to_isat_xarray(isat_array, sample_sec):
+def to_isat_xarray(isat_array, x, y, sample_sec):
+    r"""
+
+    :param isat_array:
+    :param x:
+    :param y:
+    :param sample_sec:
+    :return:
+    """
+
+    time_array = get_time_array(isat_array.shape, sample_sec)  # frames along last dimension, shots along second-to-last
+    isat_xarray = xr.DataArray(isat_array, dims=['face', 'x', 'y', 'shot', 'time'],
+                               coords=(('face', 1 + np.arange(6)),
+                                       ('x', x, {"units": str(u.cm)}),
+                                       ('y', y, {"units": str(u.cm)}),
+                                       ('shot', 1 + np.arange(isat_array.shape[-2])),
+                                       ('time', time_array), {"units": str(u.cm)}))
+    return isat_xarray
 
 
-# def get_time_array(isat_sample_sec):
+def get_time_array(isat_shape, sample_sec):
+
+    fill_array = np.zeros(isat_shape, dtype=float)
+    frame_times = np.arange(isat_shape[-1]) * sample_sec.to(u.ms).value
+    fill_array[...] = frame_times
+    return fill_array
