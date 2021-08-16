@@ -16,14 +16,17 @@ def get_isat(filename):
     x_round, y_round, shot_list = get_mach_xy(hdf5_file)
     xy_shot_ref, x, y = categorize_mach_xy(x_round, y_round, shot_list)
 
+    print("Reading raw data and headers...")
     mach_data, mach_headers = get_mach_data_headers(hdf5_file)
 
-    # print("Decompressing mach data...")
-    scale_offset_decompress(mach_data, mach_headers)
+    print("Decompressing mach data...")
+    isat_array = scale_offset_decompress(mach_data, mach_headers)
 
-    isat_array = None
+    # Store six separate 4D arrays: x, y, shot number at position, frame number in shot (5D overall)
+    isat_xy_shots_array = np.array([isat_face[xy_shot_ref] for isat_face in isat_array])
 
-    return isat_array, x, y
+    hdf5_file.close()
+    return isat_xy_shots_array, x, y
 
 
 def get_mach_xy(hdf5_file):
@@ -63,9 +66,9 @@ def categorize_mach_xy(x_round, y_round, shot_list):  # Taken from LAPD getIVswe
     if x_length == 1 and y_length == 1:
         print("Only one position value. No plots can be made")
     elif x_length == 1:
-        print("Only one unique x value. Will only consider y position")
+        print("Only one unique x value. Will create radial plots along y dimension")
     elif y_length == 1:
-        print("Only one unique y value. Will only consider x position")
+        print("Only one unique y value. Will create radial plots along x dimension")
 
     # Can these be rewritten as NumPy arrays?
 
@@ -95,13 +98,17 @@ def get_mach_data_headers(hdf5_file):
     # SIS crate data
     # sis_group = structures_at_path(hdf5_file, '/Raw data + config/SIS crate/')
     sis_data = structures_at_path(hdf5_file, '/Raw data + config/SIS crate/')['Datasets']
-    # print("Datasets in sis_data structure: " + str(sis_group["Datasets"]))
 
     # pprint(sis_data, width=120)
 
     # Mach probe has 6 faces; data are in slot numbers 12, 14, ..., 22 and corresponding headers in numbers 13, ..., 23
     mach_data_paths = [sis_data[12 + (2 * i)] for i in range(6)]
     mach_headers_paths = [sis_data[12 + (2 * i + 1)] for i in range(6)]
+
+    # print(hdf5_file[mach_headers_paths[0]].dtype)
+    # Converting entire structured datasets into NumPy arrays is slow?
+    # mach_data_raw = [hdf5_file[path] for path in mach_data_paths]
+    # mach_headers_raw = [hdf5_file[path] for path in mach_headers_paths]
     mach_data_raw = np.array([hdf5_file[path] for path in mach_data_paths])
     mach_headers_raw = np.array([hdf5_file[path] for path in mach_headers_paths])
 
