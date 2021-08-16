@@ -17,10 +17,10 @@ def get_isat(filename):
     xy_shot_ref, x, y = categorize_mach_xy(x_round, y_round, shot_list)
 
     print("Reading raw data and headers...")
-    mach_data, mach_headers = get_mach_data_headers(hdf5_file)
+    mach_data, mach_scales, mach_offsets = read_mach_data_headers(hdf5_file)
 
     print("Decompressing mach data...")
-    isat_array = scale_offset_decompress(mach_data, mach_headers)
+    isat_array = scale_offset_decompress(mach_data, mach_scales, mach_offsets)
 
     # Store six separate 4D arrays: x, y, shot number at position, frame number in shot (5D overall)
     isat_xy_shots_array = np.array([isat_face[xy_shot_ref] for isat_face in isat_array])
@@ -93,10 +93,9 @@ def categorize_mach_xy(x_round, y_round, shot_list):  # Taken from LAPD getIVswe
     # SKIP REMAINING X, Y POSITION DATA PROCESSING
 
 
-def get_mach_data_headers(hdf5_file):
+def read_mach_data_headers(hdf5_file):
 
     # SIS crate data
-    # sis_group = structures_at_path(hdf5_file, '/Raw data + config/SIS crate/')
     sis_data = structures_at_path(hdf5_file, '/Raw data + config/SIS crate/')['Datasets']
 
     # pprint(sis_data, width=120)
@@ -105,22 +104,24 @@ def get_mach_data_headers(hdf5_file):
     mach_data_paths = [sis_data[12 + (2 * i)] for i in range(6)]
     mach_headers_paths = [sis_data[12 + (2 * i + 1)] for i in range(6)]
 
-    # print(hdf5_file[mach_headers_paths[0]].dtype)
     # Converting entire structured datasets into NumPy arrays is slow?
-    # mach_data_raw = [hdf5_file[path] for path in mach_data_paths]
-    # mach_headers_raw = [hdf5_file[path] for path in mach_headers_paths]
+    # print(" * Reading data...")
     mach_data_raw = np.array([hdf5_file[path] for path in mach_data_paths])
-    mach_headers_raw = np.array([hdf5_file[path] for path in mach_headers_paths])
+    # mach_headers_raw = np.array([hdf5_file[path] for path in mach_headers_paths])
+    # print(" * Reading scales...")
+    mach_scales_raw = np.array([(hdf5_file[path])['Scale'] for path in mach_headers_paths])
+    # print(" * Reading offsets...")
+    mach_offsets_raw = np.array([(hdf5_file[path])['Offset'] for path in mach_headers_paths])
 
     # print(mach_headers_raw.dtype)
     # print(mach_headers_raw['Scale'])
 
     # print("Shape of mach data array:", mach_data_raw.shape, "and headers array:", mach_headers_raw.shape)
 
-    return mach_data_raw, mach_headers_raw
+    return mach_data_raw, mach_scales_raw, mach_offsets_raw
 
 
-def scale_offset_decompress(data_raw, data_headers):  # change INPUT PARAMETERS and DIMENSION OF INPUT
+def scale_offset_decompress(data, scales, offsets):  # change INPUT PARAMETERS and DIMENSION OF INPUT
     r"""
     Decompress raw data using the specified arrays of scales and offsets.
     Scale and offset arrays must have first dimension corresponding to the length of the input data
@@ -128,22 +129,28 @@ def scale_offset_decompress(data_raw, data_headers):  # change INPUT PARAMETERS 
 
     Parameters
     ----------
-    :param data_raw: array
-    :param data_headers: structured array
+    :param:
     :return: decompressed data array
     """
 
-    scales = data_headers['Scale']
-    offsets = data_headers['Offset']
+    if scales.shape != offsets.shape:
+        raise ValueError("Scale and offset arrays should have the same shape, but scale array has shape", scales.shape,
+                         "and offset array has shape", offsets.shape)
 
-    if len(data_raw.shape) not in [2, 3]:
+    if len(data.shape) not in [2, 3]:
         raise ValueError("Only 2D or 3D arrays are currently supported for data decompression.")
 
-    if data_raw.shape[:-1] != data_headers.shape:
+    if data.shape[:-1] != scales.shape:
         raise ValueError("Data and headers have incompatible shapes and cannot be broadcast together")
 
     # Reshape scales and offsets to have same dimensions as raw data, except with last dimension one to allow broadcast
-    scales = scales.reshape(*data_raw.shape[:-1], 1)
-    offsets = offsets.reshape(*data_raw.shape[:-1], 1)
+    scales = scales.reshape(*data.shape[:-1], 1)
+    offsets = offsets.reshape(*data.shape[:-1], 1)
         
-    return data_raw * scales + offsets
+    return data * scales + offsets
+
+
+# def to_isat_xarray(isat_array, sample_sec):
+
+
+# def get_time_array(isat_sample_sec):
