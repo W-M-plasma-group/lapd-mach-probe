@@ -167,13 +167,10 @@ def to_isat_xarray(isat_array, x, y, sample_sec):
                                        ('x', x, {"units": str(u.cm)}),
                                        ('y', y, {"units": str(u.cm)}),
                                        ('shot', 1 + np.arange(isat_array.shape[-2])),
-                                       ('time', time_array), {"units": str(u.cm)}))
+                                       ('time', time_array, {"units": str(u.ms)})))
     return isat_xarray
 
 
 def get_time_array(isat_shape, sample_sec):
+    return np.arange(isat_shape[-1]) * sample_sec.to(u.ms).value
 
-    fill_array = np.zeros(isat_shape, dtype=float)
-    frame_times = np.arange(isat_shape[-1]) * sample_sec.to(u.ms).value
-    fill_array[...] = frame_times
-    return fill_array
