@@ -17,7 +17,7 @@ def get_isat(filename, sample_sec):
     print("Reading raw data and headers...")
     mach_data, mach_scales, mach_offsets = read_mach_data_headers(hdf5_file)
 
-    print("Decompressing mach data...")
+    print("Decompressing Mach data...")
     isat_array = scale_offset_decompress(mach_data, mach_scales, mach_offsets)
 
     # Store six separate 4D arrays: x, y, shot number at position, frame number in shot (5D overall)
@@ -167,7 +167,8 @@ def to_isat_xarray(isat_array, x, y, sample_sec):
                                        ('x', x, {"units": str(u.cm)}),
                                        ('y', y, {"units": str(u.cm)}),
                                        ('shot', 1 + np.arange(isat_array.shape[-2])),
-                                       ('time', time_array, {"units": str(u.ms)})))
+                                       ('time', time_array, {"units": str(u.ms)})),
+                               attrs={"units": str(u.A)})
     return isat_xarray
 
 
