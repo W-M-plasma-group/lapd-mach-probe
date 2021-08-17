@@ -106,7 +106,7 @@ def read_mach_data_headers(hdf5_file):
     mach_headers_paths = [sis_data[12 + (2 * i + 1)] for i in range(6)]
 
     # Converting entire structured datasets into NumPy arrays is slow?
-    print(" * Reading data...")
+    print(" * Reading data (may take about 60 seconds)...")
     mach_data_raw = np.array([hdf5_file[path] for path in mach_data_paths])
     print(" * Reading scales...")
     mach_scales_raw = np.array([(hdf5_file[path])['Scale'] for path in mach_headers_paths])
