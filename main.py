@@ -2,11 +2,16 @@ import matplotlib.pyplot as plt
 from setup import *
 from getIsat import *
 from velocity import *
+from radial import *
 
 """if __name__ == '__main__':"""
 
 # Global parameters
 sample_sec = (100 / 16 * 10 ** 6) ** -1 * u.s
+steady_state_start_time = 2 * u.ms
+steady_state_end_time = 5 * u.ms
+
+# File paths
 hdf5_filename = "/Users/leo/Plasma code/HDF5/8-3500A.hdf5"
 diagnostic_open_filename = "/Users/leo/Plasma code/lapd-plasma-analysis/diagnostic_dataset.nc"
 diagnostic_save_filename = diagnostic_open_filename
@@ -56,10 +61,12 @@ else:
 # isat[0].mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()
 # plt.show()
 
+print(get_linear_profile(diagnostic_dataset['T_e'], steady_state_start_time, steady_state_end_time))
+
 parallel_mach, perpendicular_mach, perpendicular_mach_fore, perpendicular_mach_aft, \
     parallel_velocity, perpendicular_velocity = get_velocity_profiles(isat, diagnostic_dataset['T_e'])
 
-print(parallel_mach)
-print(parallel_velocity)
+# print(parallel_mach)
+# print(parallel_velocity)
 # parallel_mach.mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()
 # plt.show()
