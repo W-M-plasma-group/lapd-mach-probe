@@ -59,6 +59,7 @@ else:
 parallel_mach, perpendicular_mach, perpendicular_mach_fore, perpendicular_mach_aft, \
     parallel_velocity, perpendicular_velocity = get_velocity_profiles(isat, diagnostic_dataset['T_e'])
 
+print(parallel_mach)
 print(parallel_velocity)
-parallel_velocity.mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()
-plt.show()
+# parallel_mach.mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()
+# plt.show()

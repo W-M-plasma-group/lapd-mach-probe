@@ -16,14 +16,14 @@ def get_velocity_profiles(isat_xarray, electron_temperature_xarray):
     """
         
         Model of Mach probe faces (perfect octagon)
-                        ________
-            |         /         \ 
-    fore    |    3  /             \  4
-            |      |               |
-    cathode |   2  |               |  5
-            |      |               |
-    aft     |    1  \             /  6
-            |         \_________/ 
+                       ___________
+            |         /           \ 
+    fore    |    3  /               \  4
+            |      |                 |
+    cathode |   2  |                 |  5
+            |      |                 |
+    aft     |    1  \               /  6
+            |         \___________/ 
     
     """
 
@@ -57,15 +57,18 @@ def get_velocity_profiles(isat_xarray, electron_temperature_xarray):
 
     # TODO Get rid of extra 'plateau' dimension somehow
     # Reshape mach-to-velocity conversion factor (from electron temperature) to make compatible with Mach number data
-    mach_to_velocity = np.sqrt(electron_temperature_xarray / ion_mass).expand_dims('temp', axis=-1)
+    # mach_to_velocity = np.sqrt(electron_temperature_xarray / ion_mass).expand_dims('temp', axis=-1)
+    mach_to_velocity = np.sqrt(electron_temperature_xarray / ion_mass)
 
     # Save units of mach-number-to-velocity data to compute conversion factor for final result
     mach_to_velocity_conversion = np.sqrt(1 * (T_e_units := u.eV) / (m_i_units := u.kg)).to(u.cm/u.s).value  # see above
 
     # print("Parallel mach shape is", parallel_mach.shape, "and mach to velocity shape is", mach_to_velocity.shape)
-    parallel_velocity = (parallel_mach * mach_to_velocity).squeeze('temp') * mach_to_velocity_conversion
+    # parallel_velocity = (parallel_mach * mach_to_velocity).squeeze('temp') * mach_to_velocity_conversion
+    parallel_velocity = parallel_mach * mach_to_velocity * mach_to_velocity_conversion
     parallel_velocity.attrs['units'] = str(u.cm/u.s)
-    perpendicular_velocity = (perpendicular_mach * mach_to_velocity).squeeze('temp') * mach_to_velocity_conversion
+    # perpendicular_velocity = (perpendicular_mach * mach_to_velocity).squeeze('temp') * mach_to_velocity_conversion
+    perpendicular_velocity = perpendicular_mach * mach_to_velocity * mach_to_velocity_conversion
     perpendicular_velocity.attrs['units'] = str(u.cm / u.s)
 
     # TODO return these values as one Dataset instead of many DataArrays
