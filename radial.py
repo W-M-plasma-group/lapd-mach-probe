@@ -3,6 +3,7 @@ import xarray as xr
 
 def get_radial_profile(diagnostic, steady_state_start, steady_state_end):
 
+    # Develop radial profile; can use in ex. neutrals.py where needed
     linear_profile = get_linear_profile(diagnostic, steady_state_start, steady_state_end)
     return
 

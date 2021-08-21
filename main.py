@@ -61,12 +61,15 @@ else:
 # isat[0].mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()
 # plt.show()
 
-print(get_linear_profile(diagnostic_dataset['T_e'], steady_state_start_time, steady_state_end_time))
+# print(get_linear_profile(diagnostic_dataset['T_e'], steady_state_start_time, steady_state_end_time)))
 
 parallel_mach, perpendicular_mach, perpendicular_mach_fore, perpendicular_mach_aft, \
-    parallel_velocity, perpendicular_velocity = get_velocity_profiles(isat, diagnostic_dataset['T_e'])
+    parallel_velocity, perpendicular_velocity = get_velocity_profiles(
+        isat, get_linear_profile(diagnostic_dataset['T_e'], steady_state_start_time, steady_state_end_time))
 
 # print(parallel_mach)
 # print(parallel_velocity)
-# parallel_mach.mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()
-# plt.show()
+parallel_velocity.mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()
+plt.show()
+perpendicular_velocity.mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()  # squeeze(drop=True)
+plt.show()
