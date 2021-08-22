@@ -7,7 +7,7 @@ from radial import *
 """if __name__ == '__main__':"""
 
 # Global parameters
-sample_sec = (100 / 16 * 10 ** 6) ** -1 * u.s
+sample_sec = (100 / 16 * 10e6) ** -1 * u.s
 steady_state_start_time = 2 * u.ms
 steady_state_end_time = 5 * u.ms
 
@@ -34,7 +34,14 @@ use_existing_mach = False
 save_mach = False
 # End user settings
 
-lapd_parameters = setup_lapd(hdf5_filename)
+# TODO raise issue of uTorr/ other misc units not working with SI prefixes
+# TODO still have to create pressure data! (In isweep-vsweep code)
+
+# Torr = u.def_unit("Torr", u.Torr, prefixes=True, namespace=locals())
+# lapd_plot_units = (locals()['uTorr'], u.gauss, u.kA)
+uTorr = u.def_unit("uTorr", 1e-6 * u.Torr)
+lapd_plot_units = (uTorr, u.gauss, u.kA)
+lapd_parameters = setup_lapd(hdf5_filename, lapd_plot_units)
 
 # Check if diagnostic data netCDF file with diagnostic data exists
 # open_file_exists = True
@@ -63,13 +70,22 @@ else:
 
 # print(get_linear_profile(diagnostic_dataset['T_e'], steady_state_start_time, steady_state_end_time)))
 
-parallel_mach, perpendicular_mach, perpendicular_mach_fore, perpendicular_mach_aft, \
-    parallel_velocity, perpendicular_velocity = get_velocity_profiles(
-        isat, get_linear_profile(diagnostic_dataset['T_e'], steady_state_start_time, steady_state_end_time))
+linear_electron_temperature = linear_profile(diagnostic_dataset['T_e'], steady_state_start_time, steady_state_end_time)
+mach_velocity = get_velocity_profiles(isat, linear_electron_temperature, lapd_parameters)
 
-# print(parallel_mach)
 # print(parallel_velocity)
-parallel_velocity.mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()
-plt.show()
-perpendicular_velocity.mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()  # squeeze(drop=True)
-plt.show()
+# mach_velocity["Parallel velocity"].mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()
+# plt.show()
+
+# parallel_velocity_processed = mach_velocity["Parallel velocity"].mean(dim='shot', keep_attrs=True).squeeze()
+# print(parallel_velocity_processed)
+# parallel_velocity_processed.plot.contourf()
+# plt.show()
+
+print("Experimental parameters at LAPD:", {parameter: str(value) for parameter, value in lapd_parameters.items()})
+for variable in mach_velocity:
+    mach_velocity[variable].mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()
+    plt.title(variable)
+    # plt.title(str([parameter + " = " + str(value) for parameter, value in lapd_parameters.items()]), size='medium')
+    # Can use numpy to round experimental parameters and add to all plots now that in correct units?
+    plt.show()

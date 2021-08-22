@@ -1,14 +1,14 @@
 import xarray as xr
 
 
-def get_radial_profile(diagnostic, steady_state_start, steady_state_end):
+def radial_profile(diagnostic, steady_state_start, steady_state_end):
 
     # Develop radial profile; can use in ex. neutrals.py where needed
-    linear_profile = get_linear_profile(diagnostic, steady_state_start, steady_state_end)
+    linear_diagnostic_profile = linear_profile(diagnostic, steady_state_start, steady_state_end)
     return
 
 
-def get_linear_profile(diagnostic, steady_state_start, steady_state_end):
+def linear_profile(diagnostic, steady_state_start, steady_state_end):
 
     # check if diagnostic is 1D; needed for radial profile
     if diagnostic.sizes['x'] == diagnostic.sizes['y'] == 1:
