@@ -35,10 +35,8 @@ def get_velocity_profiles(isat_xarray, electron_temperature_xarray, experimental
     alpha_aft = np.pi / 4 * u.rad  # [rad] Angle the face in aft direction makes with B-field
 
     # Velocity calculation constants
-    ion_mass = 6.6464764 * 10 ** -27 * u.kg  # Ion mass
+    ion_mass = 6.6464764e-27 * u.kg  # Ion mass
     # ion_temperature = 1 * u.eV  # Approximate Ion temperature
-
-    mach_velocity = xr.Dataset()
 
     """Parallel Mach number"""
     print("Calculating Mach numbers...")

@@ -1,4 +1,4 @@
-import xarray as xr
+import numpy as np
 
 
 def radial_profile(diagnostic, steady_state_start, steady_state_end):
@@ -16,14 +16,13 @@ def linear_profile(diagnostic, steady_state_start, steady_state_end):
     elif diagnostic.sizes['x'] > 1 and diagnostic.sizes['y'] > 1:
         print("Linear profiles not defined for two-dimensional (areal) data.")
     else:
-        both = xr.ufuncs.logical_and
         time = diagnostic.coords['time']
         return diagnostic.squeeze().where(
-            both(time >= steady_state_start.value, time <= steady_state_end.value), drop=True).mean(dim='time')
+            np.logical_and(time >= steady_state_start.value, time <= steady_state_end.value), drop=True
+        ).mean(dim='time', keep_attrs=True)
 
 
 def get_spatial_dimensions(data_xarray):
 
     spatial_dimensions = ('x', 'y')
     return tuple(dimension for dimension in spatial_dimensions if data_xarray.sizes[dimension] >= 1)
-
