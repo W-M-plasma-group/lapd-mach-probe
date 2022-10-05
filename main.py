@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from setup import *
+from experimental import *
 from getMachIsat import *
 from velocity import *
 from radial import *
@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     uTorr = u.def_unit("uTorr", 1e-6 * u.Torr)
     lapd_plot_units = (uTorr, u.gauss, u.kA)
-    lapd_parameters = setup_lapd(hdf5_path, lapd_plot_units)
+    lapd_parameters = get_exp_params(hdf5_path)
 
     diagnostic_dataset = xr.open_dataset(langmuir_nc_path)
     # Make position-linear electron temperature dataset from LAPD diagnostic dataset
