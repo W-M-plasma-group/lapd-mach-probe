@@ -1,25 +1,32 @@
 import numpy as np
+import astropy.units as u
 
 
 def radial_profile(diagnostic, steady_state_start, steady_state_end):
 
     # Develop radial profile; can use in ex. neutrals.py where needed
     linear_diagnostic_profile = linear_profile(diagnostic, steady_state_start, steady_state_end)
-    return
+    pass
 
 
 def linear_profile(diagnostic, steady_state_start, steady_state_end):
 
-    # check if diagnostic is 1D; needed for radial profile
-    if diagnostic.sizes['x'] == diagnostic.sizes['y'] == 1:
-        raise ValueError("Diagnostic data has no spatial dimension. One-dimensional data needed for linear profiles.")
-    elif diagnostic.sizes['x'] > 1 and diagnostic.sizes['y'] > 1:
-        print("Linear profiles not defined for two-dimensional (areal) data.")
-    else:
+    if validate_dimensions(diagnostic.sizes):
         time = diagnostic.coords['time']
         return diagnostic.squeeze().where(
-            np.logical_and(time >= steady_state_start.value, time <= steady_state_end.value), drop=True
+            np.logical_and(time >= steady_state_start.to(u.s).value, time <= steady_state_end.to(u.s).value), drop=True
         ).mean(dim='time', keep_attrs=True)
+
+
+def validate_dimensions(da_sizes):
+    # check if diagnostic is 1D; needed for radial profile
+    if da_sizes['x'] == da_sizes['y'] == 1:
+        raise ValueError("Diagnostic data has no spatial dimension. One-dimensional data needed for linear profiles.")
+    elif da_sizes['x'] > 1 and da_sizes['y'] > 1:
+        print("Linear profiles not defined for two-dimensional (areal) data.")
+        return False
+    else:
+        return True
 
 
 def get_spatial_dimensions(data_xarray):
