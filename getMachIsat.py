@@ -29,17 +29,6 @@ def get_mach_isat(filename, mach_bcs, mach_receptacles, resistances):
     :return:
     """
 
-    """
-    Process
-    - How many Mach probes are there, and at what ports are they?
-    - What faces are found on each Mach probe?
-    - What are the boards and channels for those faces?
-    - Load those boards and channels
-    - Load associated motor data for Mach probe as a whole
-    - There are two mach probes
-    - We'll have to have a Face dimension. That will disappear in velocity.py
-    """
-
     lapd_file = lapd.File(filename)
     run_name = lapd_file.info['run name']
 
@@ -57,6 +46,13 @@ def get_mach_isat(filename, mach_bcs, mach_receptacles, resistances):
 
     isat_da = to_mach_isat_da(isat_datas, positions, shots_per_position, ports).rename(run_name)
     isat_da = to_real_mach_isat_units(isat_da, resistances)
+
+    # Subtract out DC current offset on each face
+    isat_offsets = isat_da[..., -2000:].quantile(0.25, dim="time")  # TODO should this be mean?
+    isat_da -= isat_offsets
+    # Drop negative values for current
+    # Should not be negative in first place, so if needed for large areas, data may have been skewed/is unreliable
+    isat_da = isat_da.where(isat_da > 0)
 
     return isat_da
 
