@@ -17,7 +17,7 @@ from bapsflib.lapd.tools import portnum_to_z as port_to_z
 #                          {2: 14.9, 5: 15.0}]
 
 
-def get_mach_isat(filename, mach_bcs, mach_receptacles, resistances):
+def get_mach_isat(filename, mach_bcs, mach_receptacles, resistances, silent=True):
 
     # TODO add function definition
     r"""
@@ -38,7 +38,7 @@ def get_mach_isat(filename, mach_bcs, mach_receptacles, resistances):
                   for probe_bcs in mach_bcs]
     # print(isat_datas[0][2]['signal'].shape)
 
-    mach_motor_datas = [lapd_file.read_controls([('6K Compumotor', receptacle)]) for receptacle in mach_receptacles]
+    mach_motor_datas = [lapd_file.read_controls([('6K Compumotor', receptacle)], silent=silent) for receptacle in mach_receptacles]
     lapd_file.close()
     ports = np.array([motor_data.info['controls']['6K Compumotor']['probe']['port'] for motor_data in mach_motor_datas])
     # NOTE: Assume mach motor datas from 6K Compumotor are identical, and only consider first one

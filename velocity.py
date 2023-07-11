@@ -2,20 +2,23 @@ import numpy as np
 import xarray as xr
 import astropy.units as u
 
+from plasmapy.particles import Particle
 
-def get_velocity_profiles(mach_isat_da, electron_temperature_da):
+
+def get_velocity_profiles(mach_isat_da, electron_temperature_da , ion_type):
     r"""
 
     Parameters
     ----------
     :param mach_isat_da:
     :param electron_temperature_da:
+    :param ion_type:
     :return:
     """
 
     """
         
-        Model of Mach probe faces (perfect octagon)
+        Model of Mach probe faces (actual probe is perfect octagon)
                             ___________
                  |         /           \ 
         fore     |    3  /               \  4
@@ -27,18 +30,12 @@ def get_velocity_profiles(mach_isat_da, electron_temperature_da):
     
     """ # noqa
 
-
-    """diagnostics_ds = xr.Dataset({key: xr.DataArray(data=templates[key],
-                                                   dims=['port', 'x', 'y', 'time'],
-                                                   coords=(('port', ports),
-                                                           ('x', x, {"units": str(u.cm)}),
-                                                           ('y', y, {"units": str(u.cm)}),
-                                                           ('time', ramp_times.to(u.ms), {"units": str(u.ms)}))
-                                                   ).assign_coords({'plateau': ('time', np.arange(num_plateaus) + 1),
-                                                                    'z': ('port', port_z)}
-                                                                   ).assign_attrs({"units": keys_units[key]})
-                                 for key in keys_units})"""
-
+    """
+    Diagnostic DataArray structure
+    - Dims: port, x (cm), y (cm), time (ms)
+    - Coordinates: plateau (with time, starting from 1); z (cm, with port)
+    - 
+    """
 
     """CONSTANTS AND DESCRIPTIONS ARE TAKEN FROM MATLAB CODE WRITTEN BY CONOR PERKS"""
     # Mach probe calculation constants
@@ -47,7 +44,9 @@ def get_velocity_profiles(mach_isat_da, electron_temperature_da):
     alpha_aft = np.pi / 4 * u.rad  # [rad] Angle the face in aft direction makes with B-field
 
     # Velocity calculation constants
-    ion_mass = 6.6464764e-27 * u.kg  # Ion mass
+
+    # ion_mass = 6.6464764e-27 * u.kg  # Ion mass
+    ion_mass = Particle(ion_type).mass
     # ion_temperature = 1 * u.eV  # Approximate Ion temperature
 
     mach_to_velocity = np.sqrt(electron_temperature_da / ion_mass).sortby("port")  # Local plasma sound speed in sqrt(eV/kg)
@@ -56,14 +55,14 @@ def get_velocity_profiles(mach_isat_da, electron_temperature_da):
     mach_to_velocity_units = np.sqrt(1 * u.eV / u.kg).to(u.cm / u.s).value
     # MATLAB note: "Note that M=v/C_s where C_s = sqrt((T_e+T_i)/M_i), but we will assume that T_i~1ev"
 
-    print("Calculating Mach numbers...")
+    # print("Calculating Mach numbers...")
     
     """Parallel Mach number"""
     parallel_mach = magnetization_factor * np.log(mach_isat_da.sel(face=5) / mach_isat_da.sel(face=2)).sortby("port")
-    print(" * Parallel Mach number found ")
+    # print(" * Parallel Mach number found ")
 
     """Parallel steady-state velocity profiles"""
-    print(" * Generating parallel velocity profiles...")
+    # print(" * Generating parallel velocity profiles...")
     langmuir_with_mach_ports = mach_to_velocity.assign_coords(port=parallel_mach.port)
     mach_to_velocity = mach_to_velocity.reindex_like(langmuir_with_mach_ports, method="nearest", tolerance=5)
     parallel_velocity = parallel_mach * mach_to_velocity * mach_to_velocity_units
@@ -80,10 +79,10 @@ def get_velocity_profiles(mach_isat_da, electron_temperature_da):
         perpendicular_mach_fore = (parallel_mach - mach_correction_fore) * np.cos(alpha_fore)
         perpendicular_mach_aft = (parallel_mach - mach_correction_aft) * np.cos(alpha_aft)
         perpendicular_mach = xr.concat([perpendicular_mach_fore, perpendicular_mach_aft], 'location').mean('location')
-        print(" * Perpendicular Mach number found ")
+        # print(" * Perpendicular Mach number found ")
 
         """Perpendicular steady-state velocity profiles"""
-        print(" * Generating perpendicular velocity profiles...")
+        # print(" * Generating perpendicular velocity profiles...")
         perpendicular_velocity = perpendicular_mach * mach_to_velocity * mach_to_velocity_units
         perpendicular_velocity.attrs['units'] = str(u.cm / u.s)
 
@@ -92,4 +91,19 @@ def get_velocity_profiles(mach_isat_da, electron_temperature_da):
                                                   "Perpendicular aft Mach number": perpendicular_mach_aft,
                                                   "Perpendicular velocity": perpendicular_velocity})
 
-    return mach_velocities
+    return -mach_velocities  # A positive velocity is directed *away* from the cathode now
+
+
+def in_core(pos_list, core_radius):
+    return [abs(pos) < core_radius.to(u.cm).value for pos in pos_list]
+
+
+def detect_steady_state_ramps(density: xr.DataArray, core_radius):
+    core_density = density.where(np.logical_and(*in_core([density.x, density.y], core_radius)), drop=True)
+    core_density_time = core_density.isel(port=0).mean(['x', 'y']).squeeze()
+    threshold = 0.9 * core_density_time.max()
+    start_index = (core_density_time > threshold).argmax().item() + 1
+    # TODO improve search for last True index
+    end_index = core_density_time.sizes['time'] - (
+            core_density_time.reindex(time=core_density_time.time[::-1]) > threshold).argmax().item()
+    return start_index, end_index
