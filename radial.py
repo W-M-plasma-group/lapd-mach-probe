@@ -12,10 +12,12 @@ def radial_profile(diagnostic, steady_state_start, steady_state_end):
 def linear_profile(diagnostic, steady_state_start, steady_state_end):
 
     if validate_dimensions(diagnostic.sizes):
-        time = diagnostic.coords['time']
-        return diagnostic.squeeze().where(
+        time = diagnostic.coords['time'] * (1. * u.Unit(diagnostic.coords['time'].attrs['units'])).to(u.s).value
+        diagnostic = diagnostic.squeeze().where(
             np.logical_and(time >= steady_state_start.to(u.s).value, time <= steady_state_end.to(u.s).value), drop=True
-        ).mean(dim='time', keep_attrs=True)
+        )
+        diagnostic = diagnostic.mean(dim='time', keep_attrs=True)
+        return diagnostic
 
 
 def validate_dimensions(da_sizes):
