@@ -25,8 +25,7 @@ def get_velocity_profiles(mach_isat_da, electron_temperature_da):
         aft      |    1  \               /  6
                  |         \___________/ 
     
-    """ # noqa
-
+    """
 
     """diagnostics_ds = xr.Dataset({key: xr.DataArray(data=templates[key],
                                                    dims=['port', 'x', 'y', 'time'],
@@ -39,7 +38,6 @@ def get_velocity_profiles(mach_isat_da, electron_temperature_da):
                                                                    ).assign_attrs({"units": keys_units[key]})
                                  for key in keys_units})"""
 
-
     """CONSTANTS AND DESCRIPTIONS ARE TAKEN FROM MATLAB CODE WRITTEN BY CONOR PERKS"""
     # Mach probe calculation constants
     magnetization_factor = 0.5  # Mag. factor value from Hutchinson's derivation incorporating diamagnetic drift
@@ -50,14 +48,15 @@ def get_velocity_profiles(mach_isat_da, electron_temperature_da):
     ion_mass = 6.6464764e-27 * u.kg  # Ion mass
     # ion_temperature = 1 * u.eV  # Approximate Ion temperature
 
-    mach_to_velocity = np.sqrt(electron_temperature_da / ion_mass).sortby("port")  # Local plasma sound speed in sqrt(eV/kg)
+    # Local plasma sound speed in sqrt(eV/kg)
+    mach_to_velocity = np.sqrt(electron_temperature_da / ion_mass).sortby("port")
 
     # Factor to convert velocity (using above factor) from sqrt(eV / kg) to cm / s
     mach_to_velocity_units = np.sqrt(1 * u.eV / u.kg).to(u.cm / u.s).value
     # MATLAB note: "Note that M=v/C_s where C_s = sqrt((T_e+T_i)/M_i), but we will assume that T_i~1ev"
 
     print("Calculating Mach numbers...")
-    
+
     """Parallel Mach number"""
     parallel_mach = magnetization_factor * np.log(mach_isat_da.sel(face=5) / mach_isat_da.sel(face=2)).sortby("port")
     print(" * Parallel Mach number found ")
