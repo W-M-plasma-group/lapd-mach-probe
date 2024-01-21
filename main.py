@@ -18,19 +18,17 @@ steady_state_times = 6 * u.ms, 15 * u.ms  # 2 * u.ms, 5 * u.ms
 
 # File paths
 # TODO make custom
-hdf5_path = "/Users/leo/lapd-data/March_2022/HDF5/01_line_valves85V_7400A.hdf5"
-langmuir_nc_path = "/Users/leo/lapd-data/March_2022/netcdf/01_line_valves85V_7400A.nc"
-# hdf5_path = "/Users/leo/lapd-data/March_2022/HDF5/10_line_valves95V_7500A.hdf5"
-# langmuir_nc_path = "/Users/leo/lapd-data/March_2022/netcdf/10_line_valves95V_7500A.nc"
-mach_save_filename = "/Users/leo/lapd-data/March_2022/mach/mach_da_01.nc"
+hdf5_path = "/Users/leomurphy/lapd-data/March_2022/01_line_valves85V_7400A.hdf5"
+langmuir_nc_path = "/Users/leomurphy/lapd-data/March_2022/lang_nc 2024-01-19/01_line_valves85V_7400A_lang.nc"
+mach_save_filename = "/Users/leomurphy/lapd-data/March_2022/mach_nc/mach_da_01.nc"
 mach_open_filename = mach_save_filename
 
 # User settings
-"""Set the use_existing_diagnostic variable to True to open an existing diagnostic dataset,
+"""Set the use_existing_lang variable to True to open an existing Langmuir diagnostic dataset,
        or False to create a new one."""
-use_existing_diagnostic = True  # False not yet supported
+use_existing_lang = True  # False not yet supported
 """Set the use_existing_mach variable to True to open an existing Mach dataset, or False to create a new one."""
-use_existing_mach = True
+use_existing_mach = False
 """Set the save_mach variable to True to save a Mach dataset if a new one is created."""
 save_mach = True
 # End user settings
@@ -56,6 +54,7 @@ if __name__ == '__main__':
         except FileNotFoundError:
             print("** Mach data .nc file not found. Calculating Mach dataset...")
             generate_mach = True
+
     # Generate a new mach and/or isat dataset file if needed
     if not generate_mach:
         print("Opening Mach data file...")
@@ -66,10 +65,11 @@ if __name__ == '__main__':
         if save_mach:
             mach_ds.to_netcdf(mach_save_filename)
 
-    # isat[0].mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()
+    # mach_isat[0].mean(dim='shot', keep_attrs=True).squeeze().plot.contourf()
     # plt.show()
 
     print("Experimental parameters at LAPD:", {parameter: str(value) for parameter, value in lapd_parameters.items()})
+    plt.rcParams['figure.dpi'] = 180
     for probe in range(len(mach_ds.port)):
         for variable in mach_ds.isel(port=probe):
             mach_ds.isel(port=probe)[variable].mean(dim='shot', keep_attrs=True).squeeze().plot.contourf(robust=True)
