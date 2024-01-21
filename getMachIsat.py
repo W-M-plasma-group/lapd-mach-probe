@@ -132,4 +132,6 @@ def to_mach_isat_da(isat_datas, positions, shots_per_position, ports):
         for face in isat_signals[probe]:
             isat_da[probe].loc[{"face": face}] = isat_signals[probe][face]
 
+    isat_dc_offset = isat_da[..., -1000:].mean(dim='time')
+    isat_da -= isat_dc_offset
     return isat_da
